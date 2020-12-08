@@ -4,6 +4,10 @@ compare1=function(estim,true){
   lines(rango,rango,col='red',lwd=2)  
 }
 
+plot(mod1$llk,type='l')
+seq1=500:ngibbs
+plot(mod1$llk[seq1],type='l')
+
 #how many groups
 plot(mod1$theta[ngibbs,],type='h')
 

@@ -32,7 +32,8 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
   store.m.betas=matrix(NA,ngibbs,nparam.occ*ngr)
   store.w=matrix(NA,ngibbs,nspp)
   store.theta=matrix(NA,ngibbs,ngr)
-
+  store.llk=matrix(NA,ngibbs,1)
+  
   options(warn=2)
 
   #start gibbs sampler
@@ -79,6 +80,9 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
     theta=sample.theta(gamma1=gamma1,w=w,ngr=ngr)
     # theta=rep(1/ngr,ngr)
 
+    llk=get.llk(alpha.s=alpha.s,nloc=nloc,nspp=nspp,betas=betas,
+                xmat.occ=xmat.occ,xmat.det=xmat.det,y=y,gammas=gammas)  
+      
     #re-order w from time to time
     if (i<nburn & i%%50==0){
       ind=order(theta,decreasing=T)
@@ -103,10 +107,12 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
     store.tau2.gamma[i,]=tau2.gamma
     store.w[i,]=w
     store.theta[i,]=theta
-    
+    store.llk[i]=llk
   }
+  
   list(betas=store.betas,m.betas=store.m.betas,
        alpha.s=store.alpha.s,m.alpha=store.m.alpha,tau2.alpha=store.tau2.alpha,
        gammas=store.gammas,m.gamma=store.m.gamma,tau2.gamma=store.tau2.gamma,
-       w=store.w,theta=store.theta)
+       w=store.w,theta=store.theta,
+       llk=store.llk)
 }

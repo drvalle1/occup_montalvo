@@ -197,3 +197,43 @@ sample.theta=function(gamma1,w,ngr){
   theta
 }
 #--------------------------------------------
+get.llk=function(alpha.s,nloc,nspp,betas,xmat.occ,y,gammas,xmat.det){
+  #get occupancy info
+  alpha.s.mat=matrix(alpha.s,nloc,nspp)
+  media.occ=alpha.s.mat+xmat.occ%*%betas
+  Phi.occ=pnorm(media.occ)
+  lPhi.occ=log(Phi.occ)
+  One_Phi.occ=1-Phi.occ
+
+  #get detection info
+  lOne_Phi.det=lPhi.det=One_Phi.det=Phi.det=array(NA,dim=c(nloc,nspp,nrep))
+  for (i in 1:nrep){
+    media.det=xmat.det[,,i]%*%gammas
+    Phi.det[,,i]=pnorm(media.det)
+    lPhi.det[,,i]=log(Phi.det[,,i])
+    One_Phi.det[,,i]=1-Phi.det[,,i]
+    lOne_Phi.det[,,i]=log(One_Phi.det[,,i])
+  }
+  
+  #get llk
+  fim=rep(NA,nspp)
+  for (i in 1:nspp){
+    lprob=rep(NA,nloc)
+    y1=y[,i,]
+    tmp=rowSums(y1)
+    
+    #all observations are equal to zero
+    cond=tmp==0
+    # lp1=rowSums(log(One_Phi.det[cond,i,]))+log(Phi.occ[cond,i])
+    p1=apply(One_Phi.det[cond,i,],1,prod)*Phi.occ[cond,i]
+    p2=One_Phi.occ[cond,i]
+    lprob[cond]=log(p1+p2)
+    
+    #at least one observations is equal to 1
+    lp1=y1[!cond,]*lPhi.det[!cond,i,]+(1-y1[!cond,])*lOne_Phi.det[!cond,i,]
+    lp2=rowSums(lp1)+lPhi.occ[!cond,i]
+    lprob[!cond]=lp2
+    fim[i]=sum(lprob)
+  }
+  sum(fim)
+}
