@@ -51,6 +51,13 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
     ystar=sample.ystar(nrep=nrep,xmat.det=xmat.det,gammas=gammas,
                        y=y,nspp=nspp)
     # ystar=ystar.true
+
+    #sample betas and associated prior parameters
+    betas=sample.betas(m.betas=m.betas,tau2.betas=tau2.betas,xmat.occ=xmat.occ,
+                       zstar=zstar,nspp=nspp,nparam.occ=nparam.occ,
+                       w=w,xtx.occ=xtx.occ,alpha.s=alpha.s)
+    # betas=betas.true
+    m.betas=sample.m.betas(w=w,betas=betas,tau2.betas=tau2.betas,nparam.occ=nparam.occ,ngr=ngr)
     
     #update intercept and associated prior parameters
     alpha.s=sample.alpha.s(m.alpha=m.alpha,tau2.alpha=tau2.alpha,
@@ -67,13 +74,6 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
     tau2.gamma=sample.tau2.gamma(gammas=gammas,m=m.gamma,nspp=nspp,tau2.a=tau2.a,
                                  tau2.b=tau2.b,nparam.det=nparam.det)
     
-    #sample betas and associated prior parameters
-    betas=sample.betas(m.betas=m.betas,tau2.betas=tau2.betas,xmat.occ=xmat.occ,
-                       zstar=zstar,nspp=nspp,nparam.occ=nparam.occ,
-                       w=w,xtx.occ=xtx.occ,alpha.s=alpha.s)
-    # betas=betas.true
-    m.betas=sample.m.betas(w=w,betas=betas,tau2.betas=tau2.betas,nparam.occ=nparam.occ,ngr=ngr)
-    
     #sample other parameters
     w=sample.w(tau2.betas=tau2.betas,betas=betas,ltheta=log(theta),w=w,
                ngr=ngr,m.betas=m.betas,nparam.occ=nparam.occ)
@@ -85,7 +85,10 @@ gibbs_occup=function(y,xmat.occ,xmat.det,ngr,tau2.a,tau2.b,
       
     #re-order w from time to time
     if (i<nburn & i%%50==0){
-      ind=order(theta,decreasing=T)
+      k=table(w)
+      k1=rep(0,ngr)
+      k1[as.numeric(names(k))]=k
+      ind=order(k1,decreasing=T)
       theta=theta[ind]
       m.betas=m.betas[,ind]
       wnew=w
