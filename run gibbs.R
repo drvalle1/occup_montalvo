@@ -31,13 +31,16 @@ xmat.det=array(tmp$V1,dim=c(nloc,nparam.det,nrep))
 ngr=10
 ngibbs=1000
 nburn=ngibbs/2
-tau2.betas=0.1
+tau2.betas2=0.5
 
 #priors
 tau2.a=0.1; tau2.b=0.1
-gamma1=0.1
+gamma1=0.01
+ind.reff=1:2
+ind.gr.reff=3:ncol(xmat.occ)
 
 #run gibbs
 mod1=gibbs_occup(y=y,xmat.occ=xmat.occ,xmat.det=xmat.det,ngr=ngr,
                  tau2.a=tau2.a,tau2.b=tau2.b,gamma1=gamma1,
-                 ngibbs=ngibbs,nburn=nburn,tau2.betas=tau2.betas)
+                 ind.reff=ind.reff,ind.gr.reff=ind.gr.reff,
+                 ngibbs=ngibbs,nburn=nburn,tau2.betas2=tau2.betas2)

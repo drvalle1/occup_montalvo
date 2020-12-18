@@ -5,8 +5,7 @@ set.seed(32)
 nloc=1000
 nrep=5
 nspp=150
-ngr=3
-nparam.occ=4
+ngr=5
 nparam.det=3
 
 #latent group membership
@@ -16,32 +15,42 @@ w.true=w=sample(1:ngr,size=nspp,replace=T)
 
 #parameters
 seq1=seq(from=-2,to=2,by=1)
-m.betas.true=m.betas=matrix(sample(seq1,size=nparam.occ*ngr,replace=T),
-                            nparam.occ,ngr)
-tau2.betas=0.1 #set by user
+nparam.occ2=4
+nparam.occ1=2
+m.betas2.true=m.betas2=matrix(sample(seq1,size=nparam.occ2*ngr,replace=T),
+                              nparam.occ2,ngr)
+tau2.betas2=0.5 #set by user
 
-#get betas
-betas=matrix(NA,nparam.occ,nspp)
+#get betas2
+betas2=matrix(NA,nparam.occ2,nspp)
 for (i in 1:nspp){
-  mu1=m.betas[,w[i]]
-  betas[,i]=rnorm(nparam.occ,mean=mu1,sd=sqrt(tau2.betas))
+  mu1=m.betas2[,w[i]]
+  betas2[,i]=rnorm(nparam.occ2,mean=mu1,sd=sqrt(tau2.betas2))
 }
-betas.true=betas
+betas2.true=betas2
 
-#visualize betas
-rango=range(betas)
+#visualize betas2
+rango=range(betas2)
 par(mfrow=c(3,1),mar=rep(1,4))
-for (i in 1:ngr) image(betas[,w==i],zlim=rango)
+for (i in 1:ngr) image(betas2[,w==i],zlim=rango)
 
-#get intercepts
-alpha.s.true=alpha.s=runif(nspp,min=-0.2,max=0.2)
-alpha.mat=matrix(alpha.s,nloc,nspp,byrow=T)
+#get betas1
+nparam.occ1=2
+m.betas1.true=m.betas1=runif(nparam.occ1,min=-1,max=1)
+tau2.betas1.true=tau2.betas1=runif(nparam.occ1,min=0,max=1)
+betas1=matrix(NA,nparam.occ1,nspp)
+for (i in 1:nparam.occ1){
+  betas1[i,]=rnorm(nspp,mean=m.betas1.true[i],sd=sqrt(tau2.betas1[i]))
+}
+betas1.true=betas1
 
 #get covariates for occupancy
-xmat.occ=matrix(rnorm(nloc*nparam.occ),nloc,nparam.occ)
+xmat.occ=matrix(rnorm(nloc*(nparam.occ2+nparam.occ1-1)),nloc,nparam.occ1-1+nparam.occ2)
+xmat.occ=cbind(1,xmat.occ)
 
 #generate occupancy status
-media=alpha.mat+xmat.occ%*%betas
+betas.true=betas=rbind(betas1,betas2)
+media=xmat.occ%*%betas
 zstar.true=zstar=matrix(rnorm(nloc*nspp,mean=media,sd=1),nloc,nspp)
 z.true=z=matrix(ifelse(zstar>0,1,0),nloc,nspp)
 

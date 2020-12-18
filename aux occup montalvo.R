@@ -14,9 +14,8 @@ tnorm <- function(n,lo,hi,mu,sig){   #generates truncated normal variates based 
   z
 }
 #------------------------------------------------
-sample.z=function(xmat.occ,betas,nloc,nspp,nrep,y,xmat.det,gammas,alpha.s){
-  alpha.s.mat=matrix(alpha.s,nloc,nspp,byrow=T)
-  media.occ=alpha.s.mat+xmat.occ%*%betas
+sample.z=function(xmat.occ,betas,nloc,nspp,nrep,y,xmat.det,gammas){
+  media.occ=xmat.occ%*%betas
   prob.occ=pnorm(media.occ)
   prob.det=matrix(1,nloc,nspp)
   for (i in 1:nrep){
@@ -35,9 +34,8 @@ sample.z=function(xmat.occ,betas,nloc,nspp,nrep,y,xmat.det,gammas,alpha.s){
   z
 }
 #----------------------------------------------
-sample.zstar=function(z,xmat.occ,betas,nloc,nspp,alpha.s){
-  alpha.s.mat=matrix(alpha.s,nloc,nspp,byrow=T)
-  media=alpha.s.mat+xmat.occ%*%betas
+sample.zstar=function(z,xmat.occ,betas,nloc,nspp){
+  media=xmat.occ%*%betas
   lo.mat=matrix(ifelse(z==1,0,-1000),nloc,nspp)
   hi.mat=matrix(ifelse(z==0,0, 1000),nloc,nspp)
   zstar=tnorm(n=nloc*nspp,lo=lo.mat,hi=hi.mat,mu=media,sig=1)
@@ -55,28 +53,23 @@ sample.ystar=function(nrep,xmat.det,gammas,y,nnloc,nspp){
   ystar
 }
 #--------------------------------------------
-sample.alpha.s=function(m.alpha,tau2.alpha,xmat.occ,zstar,nspp,
-                        w,betas,nloc){
-  prec=nloc+(1/tau2.alpha)
-  var1=1/prec
+sample.betas=function(m.betas1,tau2.betas1,m.betas2,tau2.betas2,
+                      xmat.occ,zstar,nspp,nparam.occ,w,xtx.occ,
+                      nparam.occ2){
+  betas=matrix(NA,nparam.occ,nspp)
+  prec=diag(1/c(tau2.betas1,rep(tau2.betas2,nparam.occ2)))
   
-  err=colSums(zstar-xmat.occ%*%betas)
-  pmedia=(1/tau2.alpha)*m.alpha+err
-  rnorm(nspp,mean=var1*pmedia,sd=sqrt(var1))
-}
-#----------------------------------------
-sample.m.alpha=function(nspp,alpha.s,tau2.alpha){
-  prec=(nspp/tau2.alpha)+(1/100)
-  var1=1/prec
-  pmedia=sum(alpha.s)/tau2.alpha
-  rnorm(1,mean=var1*pmedia,sd=sqrt(var1))
-}
-#----------------------------------------
-sample.tau2.alpha=function(nspp,alpha.s,m.alpha,tau2.a,tau2.b){
-  a1=(nspp/2)+tau2.a
-  err2=sum((alpha.s-m.alpha)^2)
-  b1=tau2.b+(err2/2)
-  1/rgamma(1,a1,b1)
+  #to speed things up
+  prec1=xtx.occ+prec
+  var1=solve(prec1)
+  
+  for (i in 1:nspp){
+    w1=w[i]
+    m.betas=c(m.betas1,m.betas2[,w1])
+    pmedia=t(xmat.occ)%*%zstar[,i]+prec%*%m.betas
+    betas[,i]=rmvnorm(1,mean=var1%*%pmedia,sigma=var1)
+  }
+  betas
 }
 #----------------------------------------
 sample.gammas=function(ystar,xmat.det,z,m.gamma,tau2.gamma,nparam.det,nspp,nrep){
@@ -118,44 +111,29 @@ sample.tau2.gamma=function(gammas,m.gamma,nspp,tau2.a,tau2.b,nparam.det){
   1/rgamma(nparam.det,a1,(err2/2)+tau2.b)
 }
 #----------------------------------------
-sample.betas=function(m.betas,tau2.betas,xmat.occ,zstar,nspp,nparam.occ,
-                      w,xtx.occ,alpha.s){
-  betas=matrix(NA,nparam.occ,nspp)
-  prec=1/tau2.betas
-  
-  #to speed things up
-  prec1=xtx.occ+diag(prec,nparam.occ)
-  var1=solve(prec1)
-  
-  for (i in 1:nspp){
-    w1=w[i]
-    pmedia=t(xmat.occ)%*%(zstar[,i]-alpha.s[i])+(1/tau2.betas)*m.betas[,w1]
-    betas[,i]=rmvnorm(1,mean=var1%*%pmedia,sigma=var1)
-  }
-  betas
-}
-#----------------------------------------
-sample.m.betas=function(w,betas,tau2.betas,nparam.occ,ngr){
-  m.betas=matrix(NA,nparam.occ,ngr)
+sample.m.betas2=function(w,betas,tau2.betas2,nparam.occ2,ngr,ind.gr.reff){
+  betas2=betas[ind.gr.reff,]
+  m.betas2=matrix(NA,nparam.occ2,ngr)
   for (i in 1:ngr){
     cond=w==i
     nw=sum(cond)
-    const=(nw/tau2.betas)+(1/100)
-    var1=diag(rep(1/const,nparam.occ))
-    if (nw==0) soma.betas=matrix(0,nparam.occ,1)
-    if (nw==1) soma.betas=betas[,cond]
-    if (nw >1) soma.betas=matrix(rowSums(betas[,cond]),nparam.occ,1)
-    pmedia=(1/tau2.betas)*soma.betas
-    m.betas[,i]=rmvnorm(1,mean=var1%*%pmedia,sigma=var1)
+    prec1=(nw/tau2.betas2)+(1/100)
+    var1=1/prec1
+    if (nw==0) soma.betas=matrix(0,nparam.occ2,1)
+    if (nw==1) soma.betas=betas2[,cond]
+    if (nw >1) soma.betas=matrix(rowSums(betas2[,cond]),nparam.occ2,1)
+    pmedia=(soma.betas/tau2.betas2)
+    m.betas2[,i]=rnorm(nparam.occ2,mean=var1*pmedia,sd=sqrt(var1))
   }
-  m.betas
+  m.betas2
 }
 #-----------------------------------
-sample.w=function(tau2.betas,betas,ltheta,w,ngr,m.betas,nparam.occ){
-  p1=(-nparam.occ/2)*log(tau2.betas)
+sample.w=function(tau2.betas2,betas,ltheta,w,ngr,m.betas2,nparam.occ2,ind.gr.reff){
+  p1=(-nparam.occ2/2)*log(tau2.betas2)
   for (i in 1:nspp){
-    err2=(betas[,i]-m.betas)^2
-    var.part=(-1/(2*tau2.betas))
+    betas2.mat=matrix(betas[ind.gr.reff,i],nparam.occ2,ngr)
+    err2=(betas2.mat-m.betas2)^2
+    var.part=(-1/(2*tau2.betas2))
     p2=colSums(var.part*err2)
     lprob=p1+p2+ltheta
 
@@ -166,11 +144,11 @@ sample.w=function(tau2.betas,betas,ltheta,w,ngr,m.betas,nparam.occ){
 
       #probability of new group
       ind=max.w+1
-      p1=(-nparam.occ/2)*log(100+tau2.betas)
-      err2=betas[,ind]^2
-      var.part=-1/(2*(100+tau2.betas))
+      p1=(-nparam.occ2/2)*log(100+tau2.betas2)
+      err2=betas[ind.gr.reff,i]^2
+      var.part=-1/(2*(100+tau2.betas2))
       p2=sum(var.part*err2)
-      lprob=c(lprob,c(p1+p2+ltheta[ind]))
+      lprob=c(lprob,p1+p2+ltheta[ind])
     }
     tmp=lprob-max(lprob)
     tmp=exp(tmp)
@@ -197,10 +175,9 @@ sample.theta=function(gamma1,w,ngr){
   theta
 }
 #--------------------------------------------
-get.llk=function(alpha.s,nloc,nspp,betas,xmat.occ,y,gammas,xmat.det){
+get.llk=function(nloc,nspp,betas,xmat.occ,y,gammas,xmat.det){
   #get occupancy info
-  alpha.s.mat=matrix(alpha.s,nloc,nspp)
-  media.occ=alpha.s.mat+xmat.occ%*%betas
+  media.occ=xmat.occ%*%betas
   Phi.occ=pnorm(media.occ)
   lPhi.occ=log(Phi.occ)
   One_Phi.occ=1-Phi.occ
@@ -236,4 +213,20 @@ get.llk=function(alpha.s,nloc,nspp,betas,xmat.occ,y,gammas,xmat.det){
     fim[i]=sum(lprob)
   }
   sum(fim)
+}
+#--------------------------------
+sample.m.betas1=function(nspp,betas,tau2.betas1,ind.reff,nparam.occ1){
+  prec=(nspp/tau2.betas1)+(1/100)
+  var1=1/prec
+  pmedia=rowSums(betas[ind.reff,])/tau2.betas1
+  rnorm(nparam.occ1,mean=var1*pmedia,sd=sqrt(var1))
+}
+#----------------------------------------
+sample.tau2.betas1=function(nspp,betas,m.betas1,tau2.a,
+                            tau2.b,ind.reff,nparam.occ1){
+  a1=(nspp/2)+tau2.a
+  m.betas1.mat=matrix(m.betas1,nparam.occ1,nspp)
+  err2=rowSums((betas[ind.reff,]-m.betas1.mat)^2)
+  b1=tau2.b+(err2/2)
+  1/rgamma(nparam.occ1,a1,b1)
 }

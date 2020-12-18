@@ -14,22 +14,26 @@ plot(mod1$theta[ngibbs,],type='h')
 #compare group membership
 aux=data.frame(w.true=w.true,w.estim=mod1$w[ngibbs,])
 k=table(aux); k
-seq1=c(3,1,2)
+seq1=c(2,3,5,4,1)
 k[,seq1]
 
 #compare betas
 betas.estim=matrix(mod1$betas[ngibbs,],nparam.occ,nspp)
 compare1(estim=betas.estim,true=betas.true)
 
-#compare m.betas
+#compare m.betas2
 ngr=10
-m.betas.estim=matrix(mod1$m.betas[ngibbs,],nparam.occ,ngr)
+m.betas.estim=matrix(mod1$m.betas2[ngibbs,],nparam.occ2,ngr)
 ind=seq1
-compare1(m.betas.estim[,ind],m.betas.true)
+compare1(m.betas.estim[,ind],m.betas2.true)
 
-#compare alpha.s
-alpha.s.estim=mod1$alpha.s[ngibbs,]
-compare1(estim=alpha.s.estim,true=alpha.s.true)
+#compare m.betas1
+m.betas1.estim=mod1$m.betas1[ngibbs,]
+compare1(estim=m.betas1.estim,true=m.betas1.true)
+
+#compare tau2.betas1
+tau2.betas1.estim=mod1$tau2.betas1[ngibbs,]
+compare1(estim=tau2.betas1.estim,true=tau2.betas1.true)
 
 #compare gammas
 gammas.estim=matrix(mod1$gammas[ngibbs,],nparam.det,nspp)
